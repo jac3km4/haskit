@@ -1,0 +1,27 @@
+flags:
+  hslua:
+    luajit: true
+packages:
+- .
+system-ghc: true
+extra-deps:
+- mtl-2.2.1
+- primitive-0.6.2.0
+- transformers-compat-0.5.1.4
+- case-insensitive-1.2.0.10
+- fail-4.9.0.0
+- hslua-0.8.0
+- megaparsec-6.2.0
+- parser-combinators-0.2.0
+- hashable-1.2.6.1
+- scientific-0.3.5.2
+- text-1.2.2.2
+- exceptions-0.8.3
+- integer-logarithms-1.0.2
+- stm-2.4.4.1
+- unordered-containers-0.2.8.0
+- dlist-0.8.0.3
+- syb-0.7
+- lift-generics-0.1.1
+- generic-deriving-1.11.2
+resolver: ghc-8.2.1
