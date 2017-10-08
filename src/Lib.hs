@@ -12,8 +12,8 @@ import           Text.Megaparsec
 
 testRun :: IO ()
 testRun = do
-    let cg = make [expr|1 + 3|]
-    let bc = compile [ Chunk "fn" (frame cg) ]
+    let Right(cg) = runParser expr "test" "(-1 + 3) * 8"
+    let bc = compile [ Chunk "fn" (frame (make cg)) ]
     print bc
     res <- Lua.runLua $ luafun bc
     print res
@@ -24,7 +24,7 @@ testRun = do
               , frameSize = localIdx cg
               , uvCount = 0
               , knums = L.toList $ constants cg
-              , bytecode = L.toList . L.snoc (opcodes cg) $ ret1 1 2
+              , bytecode = L.toList . L.snoc (opcodes cg) $ ret1 (localIdx cg - 1) 2
               , kgcs = []
               }
 

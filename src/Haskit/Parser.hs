@@ -2,59 +2,43 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric      #-}
 module Haskit.Parser
-    ( BExpr(..)
-    , BBinOp(..)
-    , RBinOp(..)
-    , AExpr(..)
-    , ABinOp(..)
-    , aExpr
-    , bExpr) where
-import           Data.Data                         (Data)
-import           Data.Typeable                     (Typeable)
+    ( Expr(..)
+    , UnOp(..)
+    , BinOp(..)
+    , Constant(..)
+    , expr
+    ) where
 import           Data.Void
-import           GHC.Generics                      (Generic)
-import           Language.Haskell.TH.Lift.Generics
 import           Text.Megaparsec
 import           Text.Megaparsec.Char
-import qualified Text.Megaparsec.Char.Lexer        as L
+import qualified Text.Megaparsec.Char.Lexer as L
 import           Text.Megaparsec.Expr
 
-data BExpr
-    = BoolConst Bool
-    | Not BExpr
-    | BBinary BBinOp BExpr BExpr
-    | RBinary RBinOp AExpr AExpr
+data Expr
+    = Unary UnOp Expr
+    | Binary BinOp Expr Expr
+    | Constant Constant
     deriving (Show)
 
-data BBinOp
-    = And
-    | Or
+data UnOp
+    = Not
+    | Neg
     deriving (Show)
 
-data RBinOp
+data BinOp
     = Greater
     | Less
+    | Add
+    | Sub
+    | Mult
+    | Div
     deriving (Show)
 
-data AExpr
-    = Var String
+data Constant
+    = Ident String
     | IntConst Integer
-    | Neg AExpr
-    | ABinary ABinOp AExpr AExpr
-    deriving (Show, Data, Typeable, Generic)
-
-instance Lift AExpr where
-  lift = genericLiftWithPkg CURRENT_PACKAGE_KEY
-
-data ABinOp
-    = Add
-    | Subtract
-    | Multiply
-    | Divide
-    deriving (Show, Data, Generic)
-
-instance Lift ABinOp where
-  lift = genericLiftWithPkg CURRENT_PACKAGE_KEY
+    | BoolConst Bool
+    deriving (Show)
 
 type Parser = Parsec Void String
 
@@ -80,7 +64,7 @@ rword :: String -> Parser ()
 rword w = lexeme (string w *> notFollowedBy alphaNumChar)
 
 rws :: [String] -- list of reserved words
-rws = ["if","then","else","while","do","skip","true","false","not","and","or"]
+rws = ["if","then","else","let","true","false","not","and","or"]
 
 identifier :: Parser String
 identifier = (lexeme . try) (p >>= check)
@@ -91,47 +75,49 @@ identifier = (lexeme . try) (p >>= check)
                 else return x
 
 
-aExpr :: Parser AExpr
+aExpr :: Parser Expr
 aExpr = makeExprParser aTerm aOperators
 
-bExpr :: Parser BExpr
+bExpr :: Parser Expr
 bExpr = makeExprParser bTerm bOperators
 
+expr :: Parser Expr
+expr = aExpr <|> bExpr
 
-aOperators :: [[Operator Parser AExpr]]
+aOperators :: [[Operator Parser Expr]]
 aOperators =
-  [ [Prefix (Neg <$ symbol "-") ]
-  , [ InfixL (ABinary Multiply <$ symbol "*")
-    , InfixL (ABinary Divide   <$ symbol "/") ]
-  , [ InfixL (ABinary Add      <$ symbol "+")
-    , InfixL (ABinary Subtract <$ symbol "-") ]
+  [ [Prefix (Unary Neg <$ symbol "-") ]
+  , [ InfixL (Binary Mult <$ symbol "*")
+    , InfixL (Binary Div <$ symbol "/") ]
+  , [ InfixL (Binary Add <$ symbol "+")
+    , InfixL (Binary Sub <$ symbol "-") ]
   ]
 
-bOperators :: [[Operator Parser BExpr]]
+bOperators :: [[Operator Parser Expr]]
 bOperators =
-  [ [Prefix (Not <$ rword "not") ]
-  , [InfixL (BBinary And <$ rword "and")
-    , InfixL (BBinary Or <$ rword "or") ]
+  [ [Prefix (Unary Not <$ rword "not") ]
+--   , [InfixL (Binary And <$ rword "and")
+    -- , InfixL (Binary Or <$ rword "or") ]
   ]
 
-aTerm :: Parser AExpr
+aTerm :: Parser Expr
 aTerm = parens aExpr
-    <|> Var      <$> identifier
-    <|> IntConst <$> integer
+    <|> (Constant . Ident)      <$> identifier
+    <|> (Constant . IntConst) <$> integer
 
-bTerm :: Parser BExpr
+bTerm :: Parser Expr
 bTerm =  parens bExpr
-    <|> (BoolConst True  <$ rword "true")
-    <|> (BoolConst False <$ rword "false")
+    <|> ((Constant . BoolConst) True  <$ rword "true")
+    <|> ((Constant . BoolConst) False <$ rword "false")
     <|> rExpr
 
-rExpr :: Parser BExpr
+rExpr :: Parser Expr
 rExpr = do
     a1 <- aExpr
     op <- relation
     a2 <- aExpr
-    return (RBinary op a1 a2)
+    return (Binary op a1 a2)
 
-relation :: Parser RBinOp
+relation :: Parser BinOp
 relation = (symbol ">" *> pure Greater)
     <|> (symbol "<" *> pure Less)
