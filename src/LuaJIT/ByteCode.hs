@@ -1,107 +1,107 @@
 {-# LANGUAGE LambdaCase #-}
 module LuaJIT.ByteCode
-    ( ByteCode(..)
-    , KGC(..)
-    , KNum(..)
-    , Frame(..)
-    , Instruction
-    , loadByteCode
-    , dumpByteCode
-    , putByteCode
-    , islt
-    , isge
-    , isle
-    , isgt
-    , iseqv
-    , isnev
-    , iseqs
-    , isnes
-    , iseqn
-    , isnen
-    , iseqp
-    , isnep
-    , istc
-    , isfc
-    , ist
-    , isf
-    , mov
-    , bnot
-    , unm
-    , len
-    , addvn
-    , subvn
-    , mulvn
-    , divvn
-    , modvn
-    , addnv
-    , subnv
-    , mulnv
-    , divnv
-    , modnv
-    , addvv
-    , subvv
-    , mulvv
-    , divvv
-    , modvv
-    , pow
-    , cat
-    , kstr
-    , kcdata
-    , kshort
-    , knum
-    , kpri
-    , knil
-    , uget
-    , usetv
-    , usets
-    , usetn
-    , usetp
-    , uclo
-    , fnew
-    , tnew
-    , tdup
-    , gget
-    , gset
-    , tgetv
-    , tgets
-    , tgetb
-    , tsetv
-    , tsets
-    , tsetb
-    , tsetm
-    , callm
-    , call
-    , callmt
-    , callt
-    , iterc
-    , itern
-    , varg
-    , isnext
-    , retm
-    , ret
-    , ret0
-    , ret1
-    , fori
-    , jfori
-    , forl
-    , iforl
-    , jforl
-    , iterl
-    , iiterl
-    , jiterl
-    , loop
-    , iloop
-    , jloop
-    , jmp
-    , funcf
-    , ifuncf
-    , jfuncf
-    , funcv
-    , ifuncv
-    , jfuncv
-    , funcc
-    , funccw
-    ) where
+  ( ByteCode(..)
+  , KGC(..)
+  , KNum(..)
+  , Frame(..)
+  , Instruction
+  , loadByteCode
+  , dumpByteCode
+  , putByteCode
+  , islt
+  , isge
+  , isle
+  , isgt
+  , iseqv
+  , isnev
+  , iseqs
+  , isnes
+  , iseqn
+  , isnen
+  , iseqp
+  , isnep
+  , istc
+  , isfc
+  , ist
+  , isf
+  , mov
+  , bnot
+  , unm
+  , len
+  , addvn
+  , subvn
+  , mulvn
+  , divvn
+  , modvn
+  , addnv
+  , subnv
+  , mulnv
+  , divnv
+  , modnv
+  , addvv
+  , subvv
+  , mulvv
+  , divvv
+  , modvv
+  , pow
+  , cat
+  , kstr
+  , kcdata
+  , kshort
+  , knum
+  , kpri
+  , knil
+  , uget
+  , usetv
+  , usets
+  , usetn
+  , usetp
+  , uclo
+  , fnew
+  , tnew
+  , tdup
+  , gget
+  , gset
+  , tgetv
+  , tgets
+  , tgetb
+  , tsetv
+  , tsets
+  , tsetb
+  , tsetm
+  , callm
+  , call
+  , callmt
+  , callt
+  , iterc
+  , itern
+  , varg
+  , isnext
+  , retm
+  , ret
+  , ret0
+  , ret1
+  , fori
+  , jfori
+  , forl
+  , iforl
+  , jforl
+  , iterl
+  , iiterl
+  , jiterl
+  , loop
+  , iloop
+  , jloop
+  , jmp
+  , funcf
+  , ifuncf
+  , jfuncf
+  , funcv
+  , ifuncv
+  , jfuncv
+  , funcc
+  , funccw
+  ) where
 import           Control.Monad          (forM_, replicateM_)
 import           Data.Binary            (Put)
 import           Data.Binary.Put
@@ -119,42 +119,51 @@ import           Foreign.Ptr            (Ptr, nullPtr)
 foreign import ccall "lauxlib.h luaL_loadbufferx"
     luaL_loadbufferx :: Lua.LuaState -> Ptr CChar -> CSize -> Ptr CChar -> Ptr CChar -> IO Lua.StatusCode
 
-data ByteCode = ByteCode [Frame]
-    deriving (Show)
+data ByteCode =
+  ByteCode [Frame]
+  deriving (Show)
 
 data KGC
-    = Child
-    | Table
-    | Str String
-    deriving (Show)
+  = Child
+  | Table
+  | Str String
+  deriving (Show)
 
 data KNum
-    = KI64 Int64
-    | KU64 Word64
-    deriving (Show)
+  = KI64 Int64
+  | KU64 Word64
+  deriving (Show)
 
-data Frame =
-    Frame { frameFlags :: Word8
-          , paramCount :: Word8
-          , frameSize  :: Word8
-          , uvCount    :: Word8
-          , knums      :: [KNum]
-          , kgcs       :: [KGC]
-          , bytecode   :: [Instruction]
-          } deriving (Show)
+data Frame = Frame
+  { frameFlags :: Word8
+  , paramCount :: Word8
+  , frameSize  :: Word8
+  , uvCount    :: Word8
+  , knums      :: [KNum]
+  , kgcs       :: [KGC]
+  , bytecode   :: [Instruction]
+  } deriving (Show)
 
-data Args = TwoArgs Word8 Word16 | ThreeArgs Word8 Word8 Word8
-    deriving (Show)
+data Args
+  = TwoArgs Word8 Word16
+  | ThreeArgs Word8 Word8 Word8
+  deriving (Show)
 
-data Instruction = Instruction Word8 Args
-    deriving (Show)
+data Instruction =
+  Instruction Word8 Args
+  deriving (Show)
 
 loadByteCode :: ByteCode -> Lua.Lua Lua.StatusCode
 loadByteCode bc =
-    let strict = BL.toStrict . runPut $ putByteCode bc
-    in liftLua $ \l ->
-        unsafeUseAsCString strict $ \ptr ->
-            luaL_loadbufferx l ptr (fromIntegral $ BS.length strict) nullPtr nullPtr
+  let strict = BL.toStrict . runPut $ putByteCode bc
+  in liftLua $ \l ->
+       unsafeUseAsCString strict $ \ptr ->
+         luaL_loadbufferx
+           l
+           ptr
+           (fromIntegral $ BS.length strict)
+           nullPtr
+           nullPtr
 
 dumpByteCode :: FilePath -> ByteCode -> IO ()
 dumpByteCode path bc = BL.writeFile path . runPut $ putByteCode bc
@@ -164,66 +173,62 @@ version = 1
 
 putByteCode :: ByteCode -> Put
 putByteCode (ByteCode frames) = do
-    putWord8 0x1b
-    putWord8 0x4c
-    putWord8 0x4a
-    putWord8 version
-    putULEB128 2 -- BigEndian, Strip Debug, FFI
-    forM_ frames $ \frame -> do
-        let frameBs = runPut $ putFrame frame
-        putULEB128 . fromIntegral $ BL.length frameBs
-        putLazyByteString frameBs
-    putULEB128 0
+  putWord8 0x1b
+  putWord8 0x4c
+  putWord8 0x4a
+  putWord8 version
+  putULEB128 2 -- BigEndian, Strip Debug, FFI
+  forM_ frames $ \frame -> do
+    let frameBs = runPut $ putFrame frame
+    putULEB128 . fromIntegral $ BL.length frameBs
+    putLazyByteString frameBs
+  putULEB128 0
 
 putFrame :: Frame -> Put
 putFrame frame = do
-    let numKgc = length $ kgcs frame
-    let numKn = length $ knums frame
-    let numBc = length $ bytecode frame
-    putWord8 $ frameFlags frame -- Child, Vararg, FFI (Uses BC_KCDATA)
-    putWord8 $ paramCount frame
-    putWord8 $ frameSize frame
-    putWord8 $ uvCount frame
-    putULEB128 $ fromIntegral numKgc
-    putULEB128 $ fromIntegral numKn
-    putULEB128 $ fromIntegral numBc
-    forM_ (bytecode frame) $ putWord32host . encode
-    replicateM_ (fromIntegral $ uvCount frame) $ do
-        putWord16host 0
-    forM_ (kgcs frame) $ \case
-        Child ->
-            putULEB128 0
-        Table ->
-            putULEB128 1
-        Str v -> do
-            putULEB128 . fromIntegral $ 5 + length v
-            putStringUtf8 v
-    forM_ (knums frame) putKnum
+  let numKgc = length $ kgcs frame
+  let numKn = length $ knums frame
+  let numBc = length $ bytecode frame
+  putWord8 $ frameFlags frame -- Child, Vararg, FFI (Uses BC_KCDATA)
+  putWord8 $ paramCount frame
+  putWord8 $ frameSize frame
+  putWord8 $ uvCount frame
+  putULEB128 $ fromIntegral numKgc
+  putULEB128 $ fromIntegral numKn
+  putULEB128 $ fromIntegral numBc
+  forM_ (bytecode frame) $ putWord32host . encode
+  replicateM_ (fromIntegral $ uvCount frame) $ do putWord16host 0
+  forM_ (kgcs frame) $ \case
+    Child -> putULEB128 0
+    Table -> putULEB128 1
+    Str v -> do
+      putULEB128 . fromIntegral $ 5 + length v
+      putStringUtf8 v
+  forM_ (knums frame) putKnum
 
 putKnum :: KNum -> Put
 putKnum (KI64 n) =
-    let num = (n `shiftL` 1) .|. 0
-    in putULEB128 $ fromIntegral num
+  let num = (n `shiftL` 1) .|. 0
+  in putULEB128 $ fromIntegral num
 
 putULEB128 :: Integer -> Put
 putULEB128 n
-    | n' == 0 = putWord8 byte
-    | otherwise = putWord8 (byte .|. 0x80) *> putULEB128 n'
-    where
-      byte = fromIntegral (n .&. 0x7F)
-      n' = n `shiftR` 7
+  | n' == 0 = putWord8 byte
+  | otherwise = putWord8 (byte .|. 0x80) *> putULEB128 n'
+  where
+    byte = fromIntegral (n .&. 0x7F)
+    n' = n `shiftR` 7
 
 encode :: Instruction -> Word32
 encode (Instruction op (TwoArgs a d)) =
-    fromIntegral (d .&. 0xFF00) `shiftL` 24 .|.
-    fromIntegral (d .&. 0x00FF) `shiftL` 16 .|.
-    fromIntegral a `shiftL` 8 .|.
-    fromIntegral op
+  fromIntegral (d .&. 0xFF00) `shiftL` 24 .|.
+  fromIntegral (d .&. 0x00FF) `shiftL` 16 .|.
+  fromIntegral a `shiftL` 8 .|.
+  fromIntegral op
 encode (Instruction op (ThreeArgs a b c)) =
-    fromIntegral b `shiftL` 24 .|.
-    fromIntegral c `shiftL` 16 .|.
-    fromIntegral a `shiftL` 8 .|.
-    fromIntegral op
+  fromIntegral b `shiftL` 24 .|. fromIntegral c `shiftL` 16 .|.
+  fromIntegral a `shiftL` 8 .|.
+  fromIntegral op
 
 islt a d = Instruction 0 $ TwoArgs a d
 isge a d = Instruction 1 $ TwoArgs a d
