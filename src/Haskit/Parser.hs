@@ -112,7 +112,8 @@ aTerm =
 
 bTerm :: Parser Expr
 bTerm =
-  parens bExpr <|> ((Constant . BoolConst) True <$ rword "true") <|>
+  parens bExpr <|>
+  ((Constant . BoolConst) True <$ rword "true") <|>
   ((Constant . BoolConst) False <$ rword "false") <|>
   rExpr
 

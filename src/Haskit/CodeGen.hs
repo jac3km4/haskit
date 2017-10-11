@@ -69,26 +69,27 @@ local = do
 instr :: BC.Instruction -> CodeGen ()
 instr op = modify $ \s -> s {instructions = L.snoc (instructions s) op}
 
+withLocal :: (LocalIdx -> BC.Instruction) -> CodeGen Var
+withLocal x = local >>= \l -> Local l <$ instr (x l)
+
 binop :: P.BinOp -> Var -> Var -> CodeGen Var
 binop op (Const a) (Const b) = do
   l <- local
   instr . BC.knum l $ fromIntegral a
   binop op (Local l) (Const b)
-binop op (Const a) (Local b) = do
-  local >>= \l -> Local l <$ instr (opnv op l a b)
+binop op (Const a) (Local b) = withLocal $ \l -> opnv op l a b
   where
     opnv P.Add  = BC.addnv
     opnv P.Sub  = BC.subnv
     opnv P.Mult = BC.mulnv
     opnv P.Div  = BC.divnv
-binop op (Local a) (Const b) = local >>= \l -> Local l <$ instr (opvn op l a b)
+binop op (Local a) (Const b) = withLocal $ \l -> (opvn op l a b)
   where
     opvn P.Add  = BC.addvn
     opvn P.Sub  = BC.subvn
     opvn P.Mult = BC.mulvn
     opvn P.Div  = BC.divvn
-binop op (Local a) (Local b) = do
-  local >>= \l -> Local l <$ instr (opvv op l a b)
+binop op (Local a) (Local b) = withLocal $ \l -> (opvv op l a b)
   where
     opvv P.Add  = BC.addvv
     opvv P.Sub  = BC.subvv
@@ -100,7 +101,7 @@ unop op (Const c) = do
   l <- local
   instr . BC.knum l $ fromIntegral c
   unop op $ Local l
-unop op (Local c) = local >>= \l -> Local l <$ instr (opv op l $ fromIntegral c)
+unop op (Local c) = withLocal $ \l -> opv op l $ fromIntegral c
   where
     opv P.Not = BC.bnot
     opv P.Neg = BC.unm
