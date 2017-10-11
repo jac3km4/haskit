@@ -4,10 +4,9 @@ module LuaJIT.ByteCode
     , KGC(..)
     , KNum(..)
     , Frame(..)
-    , Chunk(..)
     , Instruction
-    , compile
     , loadByteCode
+    , dumpByteCode
     , putByteCode
     , islt
     , isge
@@ -144,30 +143,11 @@ data Frame =
           , bytecode   :: [Instruction]
           } deriving (Show)
 
-data Chunk = Chunk { chunkName :: String, chunkFrame :: Frame }
-
 data Args = TwoArgs Word8 Word16 | ThreeArgs Word8 Word8 Word8
     deriving (Show)
 
 data Instruction = Instruction Word8 Args
     deriving (Show)
-
--- creates a global scope with references to all the chunks
-compile :: [Chunk] -> ByteCode
-compile chunks =
-    ByteCode $ (fmap chunkFrame chunks) ++ [global $ zipWith child [0..] chunks]
-    where
-      global children =
-        Frame { frameFlags = 3
-              , paramCount = 0
-              , frameSize = 1
-              , uvCount = 0
-              , knums = []
-              , kgcs = foldMap fst children
-              , bytecode = foldMap snd children ++ [ret0 0 1]
-              }
-      child i chunk =
-        ([Str (chunkName chunk), Child], [fnew 0 (i * 2), gset 0 (i * 2 + 1)])
 
 loadByteCode :: ByteCode -> Lua.Lua Lua.StatusCode
 loadByteCode bc =
@@ -175,6 +155,9 @@ loadByteCode bc =
     in liftLua $ \l ->
         unsafeUseAsCString strict $ \ptr ->
             luaL_loadbufferx l ptr (fromIntegral $ BS.length strict) nullPtr nullPtr
+
+dumpByteCode :: FilePath -> ByteCode -> IO ()
+dumpByteCode path bc = BL.writeFile path . runPut $ putByteCode bc
 
 version :: Word8
 version = 1
