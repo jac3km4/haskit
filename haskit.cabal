@@ -26,7 +26,7 @@ library
                      , dlist
                      , hslua
                      , megaparsec
-                     , lift-generics
+                     , th-lift-instances
   default-language:    Haskell2010
 
 executable haskit-exe

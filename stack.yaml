@@ -4,6 +4,8 @@ flags:
 packages:
 - .
 system-ghc: true
+ghc-options:
+  "*": "-Wall"
 extra-deps:
 - mtl-2.2.1
 - primitive-0.6.2.0
@@ -22,6 +24,7 @@ extra-deps:
 - unordered-containers-0.2.8.0
 - dlist-0.8.0.3
 - syb-0.7
-- lift-generics-0.1.1
-- generic-deriving-1.11.2
+- th-lift-instances-0.1.11
+- th-lift-0.7.7
+- vector-0.12.0.1
 resolver: ghc-8.2.1

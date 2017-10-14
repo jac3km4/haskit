@@ -6,6 +6,7 @@ module LuaJIT.ByteCode
   , Frame(..)
   , Instruction
   , loadByteCode
+  , loadByteCode'
   , dumpByteCode
   , putByteCode
   , islt
@@ -107,7 +108,7 @@ import           Data.Binary            (Put)
 import           Data.Binary.Put
 import           Data.Bits
 import qualified Data.ByteString        as BS
-import qualified Data.ByteString.Lazy   as BL
+import           Data.ByteString.Lazy   (toStrict)
 import           Data.ByteString.Unsafe (unsafeUseAsCString)
 import           Data.Int               (Int64)
 import           Data.Word
@@ -154,19 +155,21 @@ data Instruction =
   deriving (Show)
 
 loadByteCode :: ByteCode -> Lua.Lua Lua.StatusCode
-loadByteCode bc =
-  let strict = BL.toStrict . runPut $ putByteCode bc
-  in liftLua $ \l ->
-       unsafeUseAsCString strict $ \ptr ->
-         luaL_loadbufferx
-           l
-           ptr
-           (fromIntegral $ BS.length strict)
-           nullPtr
-           nullPtr
+loadByteCode = loadByteCode' . toStrict . runPut . putByteCode
+
+loadByteCode' :: BS.ByteString -> Lua.Lua Lua.StatusCode
+loadByteCode' bs =
+  liftLua $ \l ->
+    unsafeUseAsCString bs $ \ptr ->
+      luaL_loadbufferx
+        l
+        ptr
+        (fromIntegral $ BS.length bs)
+        nullPtr
+        nullPtr
 
 dumpByteCode :: FilePath -> ByteCode -> IO ()
-dumpByteCode path bc = BL.writeFile path . runPut $ putByteCode bc
+dumpByteCode path bc = BS.writeFile path . toStrict . runPut $ putByteCode bc
 
 version :: Word8
 version = 1
@@ -179,9 +182,9 @@ putByteCode (ByteCode frames) = do
   putWord8 version
   putULEB128 2 -- BigEndian, Strip Debug, FFI
   forM_ frames $ \frame -> do
-    let frameBs = runPut $ putFrame frame
-    putULEB128 . fromIntegral $ BL.length frameBs
-    putLazyByteString frameBs
+    let frameBs = toStrict . runPut $ putFrame frame
+    putULEB128 . fromIntegral $ BS.length frameBs
+    putByteString frameBs
   putULEB128 0
 
 putFrame :: Frame -> Put

@@ -7,6 +7,7 @@ module Haskit.Parser
   , UnOp(..)
   , BinOp(..)
   , Constant(..)
+  , definition
   , global
   ) where
 import           Data.Void
