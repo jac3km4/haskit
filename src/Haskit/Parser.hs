@@ -1,6 +1,3 @@
-{-# LANGUAGE CPP                #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric      #-}
 module Haskit.Parser
   ( Definition(..)
   , Expr(..)
