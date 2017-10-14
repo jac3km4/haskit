@@ -4,7 +4,22 @@ Haskell library for evaluating expressions using the LuaJIT compiler.
 The main goal of this project is to implement a parser for a small subset of Haskell and compile it to
 LuaJIT bytecode in order to make use of runtime JIT optimizations. The expressions to be compiled can
 be embedded within regular Haskell code using [Quasiquotations](https://wiki.haskell.org/Quasiquotation).
-Parsing and generating bytecode can be done at compile-time (so that it'll be possible to do some sort of
-type-checking of parameters to the LuaJIT code calls).
+Parsing and code generation is done at compile-time so that the resulting executable contains the raw bytecode
+that can be passed to LuaJIT directly.
 
-**Right now, this library is nowhere near useable.**
+*This library is in a very early phase and many features remain unimplemented.*
+
+# Usage
+```haskell
+import qualified Foreign.Lua    as Lua
+import           Haskit.Quoting
+
+testRun :: IO ()
+testRun = print =<< Lua.runLua exec
+
+exec :: Lua.Lua Lua.LuaInteger
+exec = do
+  _ <- [def|fun x = let y = x + 1000 in x - y|]
+  Lua.call 0 0
+  Lua.callFunc "fun" $ Lua.LuaInteger 100
+```
