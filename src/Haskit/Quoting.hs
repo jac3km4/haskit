@@ -14,13 +14,14 @@ import           Language.Haskell.TH.Quote
 import           LuaJIT.ByteCode           as BC
 import           Text.Megaparsec           (runParser)
 
+def :: QuasiQuoter
 def = QuasiQuoter {quoteExp = quoteExprExp}
 
 quoteExprExp :: String -> TH.ExpQ
 quoteExprExp s = do
-  loc <- TH.location
-  let pos =
-        (TH.loc_filename loc, fst (TH.loc_start loc), snd (TH.loc_start loc))
+  -- loc <- TH.location
+  -- let pos =
+        -- (TH.loc_filename loc, fst (TH.loc_start loc), snd (TH.loc_start loc))
   let Right (d) = runParser P.definition "" s
   let m = toStrict . runPut . BC.putByteCode $ CG.compile [d]
   dataToExpQ (const Nothing `extQ` antiExprExp) m
